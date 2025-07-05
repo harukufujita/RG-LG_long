@@ -41,7 +41,7 @@ pre_chemo_map  = {"no": 0, "yes": 1}
 sex_map        = {"Male": 1, "Female": 0}
 diameter_map   = {"<80mm": 0, "≥80mm": 2, "Unknown": 1}
 histology_map  = {"pap/tub": 0, "por/sig/muc": 1}
-location_map   = {"EG": 0, "L": 1, "M": 2, "U": 3}
+location_map   = {"EG": 0, "U": 3, "M": 2, "L": 1}
 
 # ────────────────────────────────────────────────────────────
 # 3. Title (single line, smaller font)
