@@ -30,7 +30,7 @@ FEATURES = [
 # 2. Encoding maps
 # ────────────────────────────────────────────────────────────
 asa_map        = {"1": 0, "2": 1, "3-4": 2}
-surg_map       = {"DG": 0,"TG": 2, "PG": 1,}
+surg_map       = {"DG": 0,"TG": 2, "PG": 1}
 recons_map     = {"B-1": 0, "B-2": 1, "R-Y": 2, "Other": 3}
 macro_map      = {"Type 0": 0, "Type 1/2/3/5": 2, "Type 4": 3,"Unknown": 1}
 v_map          = {"Negative": 0, "Positive": 2, "Unknown": 1}
@@ -52,12 +52,10 @@ st.markdown(
 )
 
 # ────────────────────────────────────────────────────────────
-# 4. Input widgets (in requested order)
+# 4. Input widgets
 # ────────────────────────────────────────────────────────────
 age_str = st.text_input("Age (years)")
-
 sex = st.selectbox("Sex", sex_map.keys())
-
 height_str = st.text_input("Height (cm)")
 weight_str = st.text_input("Weight (kg)")
 
@@ -74,32 +72,26 @@ if height_str and weight_str:
 
 cea_str   = st.text_input("CEA (ng/mL)")
 ca199_str = st.text_input("CA19-9 (U/mL)")
-
 prechemo = st.selectbox("Neoadjuvant chemo", pre_chemo_map.keys())
 asa      = st.selectbox("ASA-PS", asa_map.keys())
-
-# ── Tumor location ➔ limits on Surgical procedure ───────────
-# ── Tumor location ➔ limits on Surgical procedure ───────────
 location = st.selectbox("Tumor location", list(location_map.keys()))
 
+# Surgical procedure options
 _all_surg = ["DG", "TG", "PG"]
-
-if location == "EG":          # EG → DG を除外
+if location == "EG":
     surg_options = ["TG", "PG"]
-elif location in ("L", "M"):  # L または M → PG を除外
+elif location in ("L", "M"):
     surg_options = ["DG", "TG"]
-else:                         # U → 制限なし
+else:
     surg_options = _all_surg
-
 surg = st.selectbox("Surgical procedure", surg_options)
 
-
-# ── Surgical procedure ➔ limits on Reconstruction ──────────
+# Reconstruction options
 if surg == "PG":
     recons_options = ["Other"]
 elif surg == "TG":
     recons_options = ["R-Y", "Other"]
-else:  # DG
+else:
     recons_options = ["B-1", "B-2", "R-Y", "Other"]
 recons = st.selectbox("Reconstruction", recons_options)
 
@@ -107,7 +99,13 @@ macro     = st.selectbox("Macroscopic type", macro_map.keys())
 diameter  = st.selectbox("Tumor diameter", diameter_map.keys())
 histology = st.selectbox("Histology", histology_map.keys())
 
-pt   = st.selectbox("Pathological T", p_t_map.keys())
+# ➤ Pathological T options depend on prechemo
+if prechemo == "yes":
+    pt_options = list(p_t_map.keys())
+else:
+    pt_options = [k for k in p_t_map.keys() if k != "pT0"]
+pt = st.selectbox("Pathological T", pt_options)
+
 pn   = st.selectbox("Pathological N", p_n_map.keys())
 vcat = st.selectbox("Vascular invasion (v)", v_map.keys())
 
@@ -115,7 +113,6 @@ vcat = st.selectbox("Vascular invasion (v)", v_map.keys())
 # 5. Prediction
 # ────────────────────────────────────────────────────────────
 if st.button("Predict"):
-    # ―― numeric conversion & validation ――――――――――――――――
     try:
         age    = int(age_str)
         height = float(height_str)
@@ -132,7 +129,6 @@ if st.button("Predict"):
         st.error("CEA and CA19-9 must be numeric.")
         st.stop()
 
-    # ―― assemble DataFrame ―――――――――――――――――――――――――――
     inp = pd.DataFrame([{
         "p_n_2": p_n_map[pn],
         "p_t_2": p_t_map[pt],
@@ -152,8 +148,8 @@ if st.button("Predict"):
         "pre_chemo2": pre_chemo_map[prechemo]
     }])[FEATURES]
 
-    # ―― survival curve prediction ――――――――――――――――――――
-    time_grid = np.arange(0, 37)            # 0-36 months
+    # Predict survival curve
+    time_grid = np.arange(0, 37)  # 0–36 months
     surv_mat  = [
         np.interp(time_grid, fn.x, fn.y)
         for m in models for fn in m.predict_survival_function(inp)
@@ -163,7 +159,7 @@ if st.button("Predict"):
     rfs36 = float(surv_mean[time_grid == 36]) * 100
     st.success(f"Predicted 3-year RFS: **{rfs36:.1f}%**")
 
-    # ―― plot curve ―――――――――――――――――――――――――――――――――――
+    # Plot
     fig, ax = plt.subplots(figsize=(7, 5))
     ax.plot(time_grid, surv_mean, lw=2)
     ax.set_xlabel("Months after surgery")
